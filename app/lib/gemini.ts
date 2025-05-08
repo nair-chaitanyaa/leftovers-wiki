@@ -1,7 +1,8 @@
 interface RecipeOptions {
   vegetarian: boolean;
-  indian: boolean;
   quick: boolean;
+  cuisine: string;
+  customCuisine: string;
 }
 
 export async function getRecipeFromGemini(
@@ -78,8 +79,72 @@ function constructPrompt(ingredients: string, options: RecipeOptions): string {
 Only return the recipe.`;
 
   if (options.vegetarian) prompt += "\n- Only use vegetarian ingredients.";
-  if (options.indian) prompt += "\n- Focus on Indian cuisine.";
+  if (options.cuisine === 'other' && options.customCuisine) {
+    prompt += `\n- Focus on ${options.customCuisine} cuisine.`;
+  } else if (options.cuisine !== 'other') {
+    prompt += `\n- Focus on ${options.cuisine} cuisine.`;
+  }
   if (options.quick) prompt += "\n- Limit prep time to under 20 minutes.";
 
   return prompt;
+}
+
+export async function getSubstitutionsFromGemini(
+  ingredients: string[],
+  options: RecipeOptions
+): Promise<string> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('Gemini API key is not set. Please check your .env.local file.');
+  }
+
+  const prompt = `Given these ingredients that need substitutions: ${ingredients.join(', ')}, suggest possible substitutions for each ingredient that would work well in the same recipe. 
+
+For each ingredient, provide the information in this exact format:
+
+• [original ingredient name]
+  [substitution option 1] (Note: [brief note about taste/texture/cooking changes])
+  [substitution option 2] (Note: [brief note about taste/texture/cooking changes])
+  [substitution option 3] (Note: [brief note about taste/texture/cooking changes])
+
+Do NOT add a hyphen, dash, or bullet before each substitution. Just start each substitution on a new line, indented under the ingredient. Make sure to:
+- Keep each substitution concise and clear
+- Include specific quantities where relevant
+- Make notes brief but informative
+- Consider the cuisine style (${options.cuisine === 'other' ? options.customCuisine : options.cuisine})
+- Add a blank line between different ingredients
+- Keep the response clean and easy to read`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+    return data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    throw error;
+  }
 } 
