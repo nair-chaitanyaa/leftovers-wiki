@@ -19,8 +19,9 @@ async function testGeminiAPI() {
     const testIngredients = "leftover rice, onion, capsicum";
     const testOptions = {
       vegetarian: true,
-      indian: true,
-      quick: true
+      quick: true,
+      cuisine: 'indian',
+      customCuisine: ''
     };
 
     console.log('\nSending test request with:');
