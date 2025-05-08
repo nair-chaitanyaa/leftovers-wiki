@@ -1,103 +1,162 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import InputBox from './components/InputBox';
+import RecipeCard from './components/RecipeCard';
+import Loader from './components/Loader';
+import { getRecipeFromGemini } from './lib/gemini';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [ingredients, setIngredients] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [recipe, setRecipe] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    vegetarian: false,
+    indian: false,
+    quick: false,
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Load sample recipe on first render
+  useEffect(() => {
+    const loadSampleRecipe = async () => {
+      setIsLoading(true);
+      try {
+        const sampleIngredients = "leftover rice, onion, capsicum";
+        setIngredients(sampleIngredients);
+        const result = await getRecipeFromGemini(sampleIngredients, filters);
+        setRecipe(result);
+      } catch (err) {
+        console.error('Error loading sample recipe:', err);
+        setError('Failed to load sample recipe');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSampleRecipe();
+  }, []); // Empty dependency array means this runs once on mount
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ingredients.trim()) {
+      setError('Please enter some ingredients');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setRecipe(null);
+
+    try {
+      const result = await getRecipeFromGemini(ingredients, filters);
+      setRecipe(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate recipe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleFilter = (filter: keyof typeof filters) => {
+    setFilters(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+            leftovers.wiki
+          </h1>
+          <p className="mt-4 text-lg text-gray-600">
+            Enter your leftover ingredients and discover what you can make
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <InputBox
+            value={ingredients}
+            onChange={setIngredients}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button
+              type="button"
+              onClick={() => toggleFilter('vegetarian')}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                filters.vegetarian
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              Vegetarian Only
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleFilter('indian')}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                filters.indian
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              Indian Cuisine Only
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleFilter('quick')}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                filters.quick
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              Under 20 Minutes
+            </button>
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              What can I make?
+            </button>
+          </div>
+        </form>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 rounded-lg">
+            <p className="text-red-700 text-center">{error}</p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && <Loader />}
+
+        {/* Recipe Output */}
+        {recipe && !isLoading && (
+          <div className="mt-8">
+            <RecipeCard recipe={recipe} />
+          </div>
+        )}
+
+        {/* Empty State - Only show if no recipe and not loading */}
+        {!recipe && !isLoading && !error && (
+          <div className="mt-12 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recipe Suggestions</h2>
+            <div className="text-gray-500 text-center py-8">
+              Enter your ingredients above to get recipe suggestions
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
