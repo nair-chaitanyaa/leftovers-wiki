@@ -1,0 +1,2 @@
+# Ignore test/dev scripts
+scripts/test-gemini.ts 
