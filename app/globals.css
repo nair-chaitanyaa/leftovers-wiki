@@ -26,3 +26,87 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.difficulty-slider {
+  accent-color: #388E3C;
+}
+
+/* Webkit browsers */
+.difficulty-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(to right, #388E3C 0%, #388E3C var(--progress), #e5e7eb var(--progress), #e5e7eb 100%);
+  border-radius: 9999px;
+}
+.difficulty-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #388E3C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  margin-top: -7px;
+}
+
+/* Firefox */
+.difficulty-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #388E3C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+.difficulty-slider::-moz-range-track {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+}
+.difficulty-slider::-ms-fill-lower {
+  background: #388E3C;
+  border-radius: 9999px;
+}
+.difficulty-slider::-ms-fill-upper {
+  background: #e5e7eb;
+  border-radius: 9999px;
+}
+.difficulty-slider:focus {
+  outline: none;
+}
+
+/* Custom range thumb for all browsers */
+input[type=range].appearance-none::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #388E3C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  margin-top: -7px;
+}
+input[type=range].appearance-none::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #388E3C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+input[type=range].appearance-none::-ms-thumb {
+  width: 20px;
+  height: 20px;
+  background: #388E3C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+/* Dynamically fill the left side green using JS (for best effect) */

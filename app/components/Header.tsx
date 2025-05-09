@@ -9,18 +9,18 @@ const userImgSrc = '/vercel.svg'; // Replace with your picture later
 
 export default function Header() {
   return (
-    <header className="w-full relative flex flex-col items-center justify-center px-6 py-5 bg-white">
-      <div className="w-full flex items-center justify-center relative">
+    <header className="w-full bg-white px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
+      <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-center relative">
         {/* Logo */}
-        <div className="absolute left-0 flex items-center gap-2">
+        <div className="flex items-center justify-center sm:absolute sm:left-0 sm:justify-start gap-2 mb-2 sm:mb-0">
           <a href="https://leftovers.wiki" target="_blank" rel="noopener noreferrer" aria-label="Website">
-            <Image src={logoSrc} alt="Logo" width={120} height={120} className="rounded-full" />
+            <Image src={logoSrc} alt="Logo" width={80} height={80} className="rounded-full w-16 h-16 sm:w-[120px] sm:h-[120px]" />
           </a>
         </div>
         {/* Title and Subtitle */}
-        <div className="flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold" style={{ color: '#388E3C' }}>leftovers.wiki</span>
-          <span className="text-base mt-1" style={{ color: '#388E3C' }}>Enter your leftover food and discover what you can make</span>
+        <div className="flex flex-col items-center justify-center w-full">
+          <span className="text-4xl sm:text-5xl font-bold font-shadows-into-light" style={{ color: '#388E3C' }}>leftovers.wiki</span>
+          <span className="text-xs sm:text-sm mt-1" style={{ color: '#388E3C' }}>Don't waste it. Remake it.</span>
         </div>
       </div>
     </header>

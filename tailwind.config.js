@@ -6,7 +6,11 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'shadows-into-light': ['var(--font-shadows-into-light)'],
+      },
+    },
   },
   plugins: [],
 }

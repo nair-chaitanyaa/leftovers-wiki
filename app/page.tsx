@@ -16,11 +16,19 @@ export default function Home() {
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [availableIngredients, setAvailableIngredients] = useState<string[]>([]);
   const [filters, setFilters] = useState({
-    vegetarian: false,
+    diet: 'vegetarian',
+    customDiet: '',
     quick: false,
+    healthy: true,
     cuisine: 'indian',
-    customCuisine: ''
+    customCuisine: '',
+    allergens: '',
+    difficulty: 1,
+    dishType: 'main',
+    customDishType: '',
   });
+  const [showSubstitutionPrompt, setShowSubstitutionPrompt] = useState(false);
+  const [showSubstitutionBox, setShowSubstitutionBox] = useState(false);
 
   // Define available cuisines
   const cuisines = [
@@ -36,28 +44,13 @@ export default function Home() {
 
   // Load sample recipe on first render
   useEffect(() => {
-    const loadSampleRecipe = async () => {
-      setIsLoading(true);
-      try {
-        const sampleIngredients = "leftover rice, onion, capsicum";
-        setIngredients(sampleIngredients);
-        const result = await getRecipeFromGemini(sampleIngredients, filters);
-        setRecipe(result);
-      } catch (err) {
-        console.error('Error loading sample recipe:', err);
-        setError('Failed to load sample recipe');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSampleRecipe();
+    // Remove sample recipe loading
   }, []); // Empty dependency array means this runs once on mount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ingredients.trim()) {
-      setError('Please enter some ingredients');
+      setError('Where are the ingredients at, bro?');
       return;
     }
 
@@ -101,6 +94,8 @@ export default function Home() {
   // Extract ingredients when recipe is set
   useEffect(() => {
     if (recipe) {
+      setShowSubstitutionPrompt(true);
+      setShowSubstitutionBox(false);
       // Split the recipe into lines and find the ingredients section
       const lines = recipe.split('\n');
       const ingredientsStartIndex = lines.findIndex(line => 
@@ -165,11 +160,35 @@ export default function Home() {
             onChange={setIngredients}
           />
 
-          <div className="flex flex-wrap gap-4 justify-center">
+          {/* Row 1: Diet, Cuisine, Dish Type */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Diet Dropdown */}
+            <select
+              value={filters.diet}
+              onChange={e => setFilters(prev => ({ ...prev, diet: e.target.value, customDiet: '' }))}
+              className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="vegetarian">Vegetarian</option>
+              <option value="vegan">Vegan</option>
+              <option value="keto">Keto</option>
+              <option value="non-vegetarian">Non-vegetarian</option>
+              <option value="pescatarian">Pescatarian</option>
+              <option value="other">Other (please specify)</option>
+            </select>
+            {/* Custom Diet Input */}
+            {filters.diet === 'other' && (
+              <input
+                type="text"
+                value={filters.customDiet}
+                onChange={e => setFilters(prev => ({ ...prev, customDiet: e.target.value }))}
+                placeholder="Enter your dietary lifestyle..."
+                className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            )}
             {/* Cuisine Dropdown */}
             <select
               value={filters.cuisine}
-              onChange={(e) => setFilters(prev => ({ ...prev, cuisine: e.target.value, customCuisine: '' }))}
+              onChange={e => setFilters(prev => ({ ...prev, cuisine: e.target.value, customCuisine: '' }))}
               className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               {cuisines.map((cuisine) => (
@@ -178,29 +197,43 @@ export default function Home() {
                 </option>
               ))}
             </select>
-
-            {/* Custom Cuisine Input - Only show when "Other" is selected */}
+            {/* Custom Cuisine Input */}
             {filters.cuisine === 'other' && (
               <input
                 type="text"
                 value={filters.customCuisine}
-                onChange={(e) => setFilters(prev => ({ ...prev, customCuisine: e.target.value }))}
+                onChange={e => setFilters(prev => ({ ...prev, customCuisine: e.target.value }))}
                 placeholder="Enter cuisine type..."
                 className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             )}
-
-            <button
-              type="button"
-              onClick={() => toggleFilter('vegetarian')}
-              className={`px-4 py-2 rounded-full text-sm font-medium ${
-                filters.vegetarian
-                  ? 'bg-[#388E3C] text-white'
-                  : 'bg-gray-100 text-gray-800'
-              }`}
+            {/* Dish Type Dropdown */}
+            <select
+              value={filters.dishType}
+              onChange={e => setFilters(prev => ({ ...prev, dishType: e.target.value, customDishType: '' }))}
+              className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              Vegetarian Only
-            </button>
+              <option value="main">Main</option>
+              <option value="drink">Drink</option>
+              <option value="starter">Starter</option>
+              <option value="side">Side Dish</option>
+              <option value="dessert">Dessert</option>
+              <option value="other">Other (please specify)</option>
+            </select>
+            {/* Custom Dish Type Input */}
+            {filters.dishType === 'other' && (
+              <input
+                type="text"
+                value={filters.customDishType}
+                onChange={e => setFilters(prev => ({ ...prev, customDishType: e.target.value }))}
+                placeholder="Enter dish type..."
+                className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            )}
+          </div>
+
+          {/* Row 2: Under 20 Minutes, Healthy, Difficulty */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
               type="button"
               onClick={() => toggleFilter('quick')}
@@ -212,6 +245,48 @@ export default function Home() {
             >
               Under 20 Minutes
             </button>
+            <button
+              type="button"
+              onClick={() => toggleFilter('healthy')}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                filters.healthy
+                  ? 'bg-[#388E3C] text-white'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              Healthy
+            </button>
+            {/* Difficulty Slider */}
+            <div className="flex flex-col items-center w-full sm:w-auto mb-2">
+              <label htmlFor="difficulty" className="mb-1 text-sm font-medium text-gray-800">Difficulty: {filters.difficulty}</label>
+              <input
+                id="difficulty"
+                type="range"
+                min="1"
+                max="5"
+                value={filters.difficulty}
+                onChange={e => setFilters(prev => ({ ...prev, difficulty: Number(e.target.value) }))}
+                className="w-48 appearance-none h-3 rounded-full outline-none focus:ring-2 focus:ring-[#388E3C]"
+                style={{
+                  background: `linear-gradient(to right, #388E3C 0%, #388E3C ${(filters.difficulty - 1) * 25}%, #e5e7eb ${(filters.difficulty - 1) * 25}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between w-48 text-xs text-gray-500 mt-1">
+                <span>1 (Easy)</span>
+                <span>5 (Hard)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Allergens */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <input
+              type="text"
+              value={filters.allergens}
+              onChange={e => setFilters(prev => ({ ...prev, allergens: e.target.value }))}
+              placeholder="List any allergens (e.g. peanut)"
+              className="w-full sm:w-auto px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-800 mt-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
 
           <div className="flex justify-center">
@@ -227,8 +302,8 @@ export default function Home() {
 
         {/* Error Message */}
         {error && (
-          <div className="mt-6 p-4 bg-red-50 rounded-lg">
-            <p className="text-red-700 text-center">{error}</p>
+          <div className="mt-6">
+            <p className="text-red-700 text-center text-2xl">{error}</p>
           </div>
         )}
 
@@ -240,46 +315,73 @@ export default function Home() {
           <div className="mt-8 space-y-6">
             <RecipeCard recipe={recipe} />
             
-            {/* Ingredient Selection for Substitutions */}
-            <div className="mt-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Select Ingredients for Substitutions</h2>
-              <p className="text-gray-600 mb-4">Check the ingredients you need substitutions for:</p>
-              <div className="space-y-2">
-                {availableIngredients.map((ingredient, index) => (
-                  <label
-                    key={index}
-                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedIngredients.includes(ingredient)}
-                      onChange={() => toggleIngredient(ingredient)}
-                      className="h-4 w-4 text-[#388E3C] border-gray-300 rounded focus:ring-[#388E3C]"
-                    />
-                    <span className="text-gray-900 text-sm">{ingredient}</span>
-                  </label>
-                ))}
+            {/* Substitution Prompt */}
+            {showSubstitutionPrompt && (
+              <div className="mt-6 flex flex-col items-center">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 w-full max-w-md">
+                  <p className="text-lg font-medium mb-4 text-black text-center">Do you need to substitute something?</p>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      className="px-6 py-2 bg-[#388E3C] text-white rounded-lg hover:bg-[#256029] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#388E3C]"
+                      onClick={() => { setShowSubstitutionPrompt(false); setShowSubstitutionBox(true); }}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                      onClick={() => { setShowSubstitutionPrompt(false); setShowSubstitutionBox(false); }}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Ingredient Selection for Substitutions */}
+            {showSubstitutionBox && (
+              <div className="mt-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Select Ingredients for Substitutions</h2>
+                <p className="text-gray-600 mb-4">Check the ingredients you need substitutions for:</p>
+                <div className="space-y-2">
+                  {availableIngredients.map((ingredient, index) => (
+                    <label
+                      key={index}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIngredients.includes(ingredient)}
+                        onChange={() => toggleIngredient(ingredient)}
+                        className="h-4 w-4 text-[#388E3C] border-gray-300 rounded focus:ring-[#388E3C]"
+                      />
+                      <span className="text-gray-900 text-sm">{ingredient}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Substitutions Button */}
-            <div className="flex justify-center">
-              <button
-                onClick={handleGetSubstitutions}
-                disabled={isLoadingSubstitutions || selectedIngredients.length === 0}
-                className="px-6 py-3 bg-[#CF5A81] text-white font-medium rounded-lg hover:bg-[#BF3764] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D285E0] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoadingSubstitutions 
-                  ? 'Generating Substitutions...' 
-                  : selectedIngredients.length === 0
-                    ? 'Select Ingredients First'
-                    : `Show Substitutions for ${selectedIngredients.length} Ingredient${selectedIngredients.length === 1 ? '' : 's'}`
-                }
-              </button>
-            </div>
+            {showSubstitutionBox && (
+              <div className="flex justify-center">
+                <button
+                  onClick={handleGetSubstitutions}
+                  disabled={isLoadingSubstitutions || selectedIngredients.length === 0}
+                  className="px-6 py-3 bg-[#CF5A81] text-white font-medium rounded-lg hover:bg-[#BF3764] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D285E0] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoadingSubstitutions 
+                    ? 'Generating Substitutions...' 
+                    : selectedIngredients.length === 0
+                      ? 'Select Ingredients First'
+                      : `Show Substitutions for ${selectedIngredients.length} Ingredient${selectedIngredients.length === 1 ? '' : 's'}`
+                  }
+                </button>
+              </div>
+            )}
 
             {/* Substitutions Output */}
-            {substitutions && !isLoadingSubstitutions && (
+            {showSubstitutionBox && substitutions && !isLoadingSubstitutions && (
               <div className="mt-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Ingredient Substitutions</h2>
                 <div className="space-y-6">

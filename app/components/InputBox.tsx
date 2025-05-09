@@ -21,7 +21,7 @@ export default function InputBox({
                  transition-colors duration-200"
       />
       <div className="mt-2 text-sm text-black">
-        Tip: For best results, include quantities (e.g. 2 cups rice, 1 onion, 1/2 capsicum).
+        Tip: For best results, include quantities (e.g. 1 cup rice).
       </div>
     </div>
   );

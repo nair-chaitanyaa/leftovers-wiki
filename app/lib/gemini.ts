@@ -1,8 +1,14 @@
 interface RecipeOptions {
-  vegetarian: boolean;
+  diet: string;
+  customDiet: string;
   quick: boolean;
+  healthy: boolean;
   cuisine: string;
   customCuisine: string;
+  allergens: string;
+  difficulty: number;
+  dishType: string;
+  customDishType: string;
 }
 
 export async function getRecipeFromGemini(
@@ -21,7 +27,7 @@ export async function getRecipeFromGemini(
   }
 
   if (!ingredients.trim()) {
-    throw new Error('Please enter some ingredients');
+    throw new Error('Where are the ingredients at, bro?');
   }
 
   const prompt = constructPrompt(ingredients, options);
@@ -52,6 +58,9 @@ export async function getRecipeFromGemini(
         statusText: response.statusText,
         body: errorText
       });
+      if (response.status === 429 || errorText.toLowerCase().includes('rate limit')) {
+        throw new Error("Currently I can't process your request. Please try again in a bit.");
+      }
       throw new Error(`Gemini API error: ${response.statusText}`);
     }
 
@@ -78,13 +87,29 @@ function constructPrompt(ingredients: string, options: RecipeOptions): string {
 
 Only return the recipe.`;
 
-  if (options.vegetarian) prompt += "\n- Only use vegetarian ingredients.";
+  if (options.dishType === 'other' && options.customDishType) {
+    prompt += `\n- This should be a ${options.customDishType} dish.`;
+  } else if (options.dishType) {
+    prompt += `\n- This should be a ${options.dishType} dish.`;
+  }
+  if (options.diet === 'other' && options.customDiet) {
+    prompt += `\n- Only use ingredients and methods suitable for: ${options.customDiet}.`;
+  } else if (options.diet) {
+    prompt += `\n- Only use ingredients and methods suitable for: ${options.diet}.`;
+  }
+  if (options.healthy) prompt += "\n- Only show healthy recipes. Avoid deep frying, excess oil, sugar, and processed foods. Prefer whole grains, lean proteins, and lots of vegetables.";
   if (options.cuisine === 'other' && options.customCuisine) {
     prompt += `\n- Focus on ${options.customCuisine} cuisine.`;
   } else if (options.cuisine !== 'other') {
     prompt += `\n- Focus on ${options.cuisine} cuisine.`;
   }
   if (options.quick) prompt += "\n- Limit prep time to under 20 minutes.";
+  if (options.allergens && options.allergens.trim().length > 0) {
+    prompt += `\n- Avoid all of these allergens: ${options.allergens}`;
+  }
+  if (options.difficulty) {
+    prompt += `\n- Set the recipe difficulty to: ${options.difficulty} (1=easy, 5=hard).`;
+  }
 
   return prompt;
 }

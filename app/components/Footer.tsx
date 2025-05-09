@@ -4,9 +4,9 @@ import { FaXTwitter, FaPen } from 'react-icons/fa6';
 
 export default function Footer() {
   return (
-    <footer className="w-full flex items-center justify-between py-6 bg-white border-t mt-8 px-6">
+    <footer className="w-full flex flex-col sm:flex-row items-center justify-between py-6 bg-white border-t mt-8 px-4 sm:px-6 gap-4 sm:gap-0 text-center sm:text-left">
       <div className="text-gray-700 text-sm">
-        Built by Chaitanyaa Nair.{' '}
+        Built by Chaitanyaa Nair. {' '}
         <a
           href="https://chaiaurcharcha.substack.com/"
           target="_blank"
@@ -14,9 +14,9 @@ export default function Footer() {
           className="underline text-[#388E3C] hover:text-[#256029]"
         >
           Read here
-        </a>{' '}if you want to know how
+        </a>{' '}if you want to know how I build this.
       </div>
-      <div className="flex items-center gap-8">
+      <div className="flex items-center justify-center gap-6 sm:gap-8">
         <a href="https://x.com/ChaitanyaaNair" target="_blank" rel="noopener noreferrer" aria-label="X">
           <FaXTwitter className="text-3xl" style={{ color: '#388E3C' }} />
         </a>
