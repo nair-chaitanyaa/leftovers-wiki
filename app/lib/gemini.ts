@@ -70,8 +70,8 @@ export async function getRecipeFromGemini(
     }
     const recipeText = data.candidates[0].content.parts[0].text;
     // Friendlier validation for Calories and Protein
-    const hasCalories = /Calories\s*:\s*\d+/i.test(recipeText);
-    const hasProtein = /Protein\s*:\s*\d+/i.test(recipeText);
+    const hasCalories = /Calories\s*:\s*[~≈]?(Approximately\s*)?\d+/i.test(recipeText);
+    const hasProtein = /Protein\s*:\s*[~≈]?(Approximately\s*)?\d+/i.test(recipeText);
     let warning = undefined;
     if (!hasCalories || !hasProtein) {
       warning = 'Nutrition information is incomplete: Calories or Protein is missing.';

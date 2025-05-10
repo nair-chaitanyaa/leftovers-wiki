@@ -98,10 +98,19 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const nutritionLabels = ['Calories', 'Protein', 'Carbs', 'Fat'];
   // Find the first valid serving size
   let displayServingSize = '';
-  if (parsedRecipe.servingSize && !/^\(|note[:]?/i.test(stripMarkdown(parsedRecipe.servingSize))) {
-    displayServingSize = stripMarkdown(parsedRecipe.servingSize);
+  if (parsedRecipe.servingSize && !/\(|note[:]?/i.test(stripMarkdown(parsedRecipe.servingSize))) {
+    // Try to match the format 'X per serving' (e.g., '1 cup per serving')
+    const match = parsedRecipe.servingSize.match(/([\d.]+\s*\w+)\s+per\s+serving/i);
+    if (match) {
+      displayServingSize = match[0];
+    } else {
+      // If not in the right format, try to reformat
+      displayServingSize = `1 ${parsedRecipe.servingSize.replace(/^(a|an)\s+/i, '').replace(/\.$/, '')} per serving`;
+    }
   } else if (parsedRecipe.servings) {
     displayServingSize = `1 of ${stripMarkdown(parsedRecipe.servings)} portions (estimated)`;
+  } else {
+    displayServingSize = 'Serving size not specified';
   }
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
