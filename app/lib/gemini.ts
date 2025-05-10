@@ -119,6 +119,11 @@ Only return the recipe.`;
   if (options.difficulty) {
     prompt += `\n- Set the recipe difficulty to: ${options.difficulty} (1=easy, 5=hard).`;
   }
+  if (options.difficulty >= 4) {
+    prompt += "\n- Make the recipe especially innovative, creative, or unique. Use advanced or unexpected techniques, flavor combinations, or presentation ideas.";
+  } else if (options.difficulty === 3) {
+    prompt += "\n- Add a touch of creativity or a unique twist to the recipe.";
+  }
 
   return prompt;
 }
