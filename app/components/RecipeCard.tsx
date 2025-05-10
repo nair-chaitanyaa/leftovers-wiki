@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getRecipeImage } from "../lib/replicate";
 
 interface Recipe {
   title: string;
@@ -48,6 +47,21 @@ function extractIngredientsFlexible(recipe: string): string[] {
   return ingredients.filter(Boolean).filter(l => !/^(instructions?|substitutions?|tips?|nutritional|time)/i.test(l));
 }
 
+function parseTimeToMinutes(timeStr: string): number {
+  const hours = timeStr.match(/(\d+)\s*h/i)?.[1] || '0';
+  const minutes = timeStr.match(/(\d+)\s*m/i)?.[1] || '0';
+  return parseInt(hours) * 60 + parseInt(minutes);
+}
+
+function formatTimeFromMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes > 0 ? `${minutes}m` : ''}`.trim();
+  }
+  return `${minutes}m`;
+}
+
 export default function RecipeCard({ recipe }: RecipeCardProps) {
   // If recipe is a string, parse it into sections
   const parsedRecipe = typeof recipe === 'string' 
@@ -89,8 +103,18 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       if (/total time[:]?/i.test(clean)) totalTime = stripMarkdown(clean.replace(/total time[:]?/i, ''));
     });
   }
+  
+  // Compute total time from prep and cook time if available
+  if (prepTime && cookTime) {
+    const prepMinutes = parseTimeToMinutes(prepTime);
+    const cookMinutes = parseTimeToMinutes(cookTime);
+    const computedTotalMinutes = prepMinutes + cookMinutes;
+    if (computedTotalMinutes > 0) {
+      totalTime = formatTimeFromMinutes(computedTotalMinutes);
+    }
+  }
   // Prefer parsedRecipe.totalTime if it is a valid value and not just 'Required:'
-  if (parsedRecipe.totalTime && parsedRecipe.totalTime.toLowerCase() !== 'required:' && parsedRecipe.totalTime.trim() !== '') {
+  else if (parsedRecipe.totalTime && parsedRecipe.totalTime.toLowerCase() !== 'required:' && parsedRecipe.totalTime.trim() !== '') {
     totalTime = stripMarkdown(parsedRecipe.totalTime);
   }
 
@@ -113,30 +137,51 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
     displayServingSize = 'Serving size not specified';
   }
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Helper to extract numbers from nutrition facts
+  function extractNumber(str: string) {
+    const match = str.match(/\d+/g);
+    return match ? match.join('-') : '';
+  }
 
-  useEffect(() => {
-    async function fetchImage() {
-      if (parsedRecipe.title) {
-        const url = await getRecipeImage(parsedRecipe.title);
-        setImageUrl(url);
-      }
-    }
-    fetchImage();
-  }, [parsedRecipe.title]);
+  // Format nutrition facts
+  const formattedNutrition = {
+    Calories: nutritionFacts['Calories']
+      ? `Approximately ${extractNumber(nutritionFacts['Calories'])} calories`
+      : 'Approximately — calories',
+    Protein: nutritionFacts['Protein']
+      ? `${extractNumber(nutritionFacts['Protein'])} grams`
+      : '— grams',
+    Carbs: nutritionFacts['Carbs']
+      ? `${extractNumber(nutritionFacts['Carbs'])} grams`
+      : '— grams',
+    Fat: nutritionFacts['Fat']
+      ? `${extractNumber(nutritionFacts['Fat'])} grams`
+      : '— grams',
+  };
+
+  // Format time values
+  function getMinutes(timeStr: string): string {
+    if (!timeStr) return '—';
+    const minutes = parseTimeToMinutes(timeStr);
+    return minutes > 0 ? `${minutes} minutes` : '—';
+  }
+  const formattedPrepTime = getMinutes(prepTime);
+  const formattedCookTime = getMinutes(cookTime);
+  let totalMinutes = 0;
+  if (prepTime) totalMinutes += parseTimeToMinutes(prepTime);
+  if (cookTime) totalMinutes += parseTimeToMinutes(cookTime);
+  const formattedTotalTime = totalMinutes > 0 ? `${totalMinutes} minutes` : '—';
+
+  // Format serving size
+  let formattedServingSize = '— servings';
+  if (parsedRecipe.servings && parsedRecipe.servings !== '') {
+    formattedServingSize = `${extractNumber(parsedRecipe.servings)} servings`;
+  } else if (parsedRecipe.servingSize && parsedRecipe.servingSize !== '') {
+    formattedServingSize = `${extractNumber(parsedRecipe.servingSize)} servings`;
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      {/* Image Section */}
-      {imageUrl && (
-        <div className="w-full h-64 bg-gray-100 flex items-center justify-center">
-          <img
-            src={imageUrl}
-            alt={parsedRecipe.title}
-            className="object-cover w-full h-full rounded-t-lg"
-          />
-        </div>
-      )}
       {/* Title Section */}
       <div className="p-6 border-b border-gray-100">
         <h2 className="text-2xl font-bold text-gray-900">
@@ -150,25 +195,23 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         {(parsedRecipe.nutrition || displayServingSize || prepTime || cookTime || totalTime) && (
           <div className="mt-0 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-base font-semibold text-gray-900 mb-2">Nutrition & Servings</h3>
-            {/* Nutrition facts row (always show main 4) */}
-            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-2 text-sm text-gray-800">
-              {nutritionLabels.map(label => (
-                <div key={label}><span className="font-semibold">{label}:</span> {nutritionFacts[label] || '—'}</div>
-              ))}
+            {/* Top line: Calories and Serving size */}
+            <div className="flex flex-wrap gap-x-8 gap-y-2 mb-2 text-sm text-gray-800">
+              <div><span className="font-semibold">Calories:</span> {formattedNutrition.Calories}</div>
+              <div><span className="font-semibold">Serving size:</span> {formattedServingSize}</div>
             </div>
-            {/* Times row */}
-            {(prepTime || cookTime || totalTime) && (
-              <div className="flex flex-wrap gap-x-6 gap-y-2 mb-2 text-sm text-gray-700">
-                {prepTime && <div><span className="font-semibold">Prep Time:</span> {prepTime}</div>}
-                {cookTime && <div><span className="font-semibold">Cook Time:</span> {cookTime}</div>}
-                {totalTime && totalTime.toLowerCase() !== 'required:' && <div><span className="font-semibold">Total Time:</span> {totalTime}</div>}
-              </div>
-            )}
-            {/* Serving Size row (only once) */}
-            {displayServingSize && (
-              <div className="mb-2 text-sm text-gray-700"><span className="font-semibold">Serving Size:</span> {displayServingSize}</div>
-            )}
-            {/* Nutrition note */}
+            {/* Second line: Carbs, Protein, Fat */}
+            <div className="flex flex-wrap gap-x-8 gap-y-2 mb-2 text-sm text-gray-800">
+              <div><span className="font-semibold">Carbs:</span> {formattedNutrition.Carbs}</div>
+              <div><span className="font-semibold">Protein:</span> {formattedNutrition.Protein}</div>
+              <div><span className="font-semibold">Fat:</span> {formattedNutrition.Fat}</div>
+            </div>
+            {/* Third line: Prep, Cook, Total time */}
+            <div className="flex flex-wrap gap-x-8 gap-y-2 mb-2 text-sm text-gray-700">
+              <div><span className="font-semibold">Prep time:</span> {formattedPrepTime}</div>
+              <div><span className="font-semibold">Cook time:</span> {formattedCookTime}</div>
+              <div><span className="font-semibold">Total time:</span> {formattedTotalTime}</div>
+            </div>
             {nutritionNote && (
               <div className="text-xs text-gray-500 mt-2">{nutritionNote}</div>
             )}
@@ -214,7 +257,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
               {parsedRecipe.tips.map((tip, index) => (
                 <li key={index} className="flex items-start">
                   <span className="text-green-500 mr-2">💡</span>
-                  <span className="text-green-700">{tip}</span>
+                  <span className="text-green-700">{stripMarkdown(tip)}</span>
                 </li>
               ))}
             </ul>
