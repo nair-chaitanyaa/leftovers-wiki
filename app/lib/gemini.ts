@@ -14,7 +14,7 @@ interface RecipeOptions {
 export async function getRecipeFromGemini(
   ingredients: string,
   options: RecipeOptions
-): Promise<string> {
+): Promise<{ recipe: string; warning?: string }> {
   // Check for API key in both possible locations
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   
@@ -68,7 +68,15 @@ export async function getRecipeFromGemini(
     if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
       throw new Error('Invalid response format from Gemini API');
     }
-    return data.candidates[0].content.parts[0].text;
+    const recipeText = data.candidates[0].content.parts[0].text;
+    // Friendlier validation for Calories and Protein
+    const hasCalories = /Calories\s*:\s*\d+/i.test(recipeText);
+    const hasProtein = /Protein\s*:\s*\d+/i.test(recipeText);
+    let warning = undefined;
+    if (!hasCalories || !hasProtein) {
+      warning = 'Nutrition information is incomplete: Calories or Protein is missing.';
+    }
+    return { recipe: recipeText, warning };
   } catch (error) {
     console.error('Error calling Gemini API:', error);
     throw error;
@@ -84,6 +92,7 @@ function constructPrompt(ingredients: string, options: RecipeOptions): string {
 5. Cooking Tips
 6. Nutritional Information (calories, protein, carbs, fat per serving)
 7. Total Time Required (prep + cook time in minutes)
+8. Estimate and include a serving size (e.g., "serves 2-3 people", "1 cup per serving", or "makes 4 portions") based on the recipe.
 
 Only return the recipe.`;
 

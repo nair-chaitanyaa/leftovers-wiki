@@ -10,6 +10,7 @@ export default function Home() {
   const [ingredients, setIngredients] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recipe, setRecipe] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [substitutions, setSubstitutions] = useState<string | null>(null);
   const [isLoadingSubstitutions, setIsLoadingSubstitutions] = useState(false);
@@ -20,6 +21,7 @@ export default function Home() {
     customDiet: '',
     quick: false,
     healthy: true,
+    highProtein: false,
     cuisine: 'indian',
     customCuisine: '',
     allergens: '',
@@ -57,10 +59,12 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     setRecipe(null);
+    setWarning(null);
 
     try {
-      const result = await getRecipeFromGemini(ingredients, filters);
-      setRecipe(result);
+      const { recipe, warning } = await getRecipeFromGemini(ingredients, filters);
+      setRecipe(recipe);
+      setWarning(warning || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate recipe');
     } finally {
@@ -232,8 +236,19 @@ export default function Home() {
             )}
           </div>
 
-          {/* Row 2: Under 20 Minutes, Healthy, Difficulty */}
+          {/* Row 2: High Protein, Under 20 Minutes, Healthy, Difficulty */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button
+              type="button"
+              onClick={() => setFilters(prev => ({ ...prev, highProtein: !prev.highProtein }))}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                filters.highProtein
+                  ? 'bg-[#388E3C] text-white'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              High Protein
+            </button>
             <button
               type="button"
               onClick={() => toggleFilter('quick')}
@@ -304,6 +319,13 @@ export default function Home() {
         {error && (
           <div className="mt-6">
             <p className="text-red-700 text-center text-2xl">{error}</p>
+          </div>
+        )}
+
+        {/* Warning Message */}
+        {warning && !error && (
+          <div className="mt-6">
+            <p className="text-yellow-700 text-center text-lg">{warning}</p>
           </div>
         )}
 

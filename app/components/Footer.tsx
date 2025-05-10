@@ -6,7 +6,12 @@ export default function Footer() {
   return (
     <footer className="w-full flex flex-col sm:flex-row items-center justify-between py-6 bg-white border-t mt-8 px-4 sm:px-6 gap-4 sm:gap-0 text-center sm:text-left">
       <div className="text-gray-700 text-sm">
-        Built by Chaitanyaa Nair. {' '}
+        Built by <a
+          href="https://x.com/ChaitanyaaNair"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-[#388E3C] hover:text-[#256029]"
+        >Chaitanyaa Nair</a>. {' '}
         <a
           href="https://chaiaurcharcha.substack.com/"
           target="_blank"
