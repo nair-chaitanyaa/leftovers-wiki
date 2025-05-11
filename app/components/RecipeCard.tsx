@@ -62,16 +62,87 @@ function formatTimeFromMinutes(totalMinutes: number): string {
   return `${minutes}m`;
 }
 
+// Helper function to parse fractions and numbers
+function parseNumber(str: string): number {
+  // Handle fractions like "1/2", "3/4"
+  const fractionMatch = str.match(/^(\d+)\/(\d+)$/);
+  if (fractionMatch) {
+    const [_, numerator, denominator] = fractionMatch;
+    return parseInt(numerator) / parseInt(denominator);
+  }
+  // Handle decimal numbers
+  return parseFloat(str) || 0;
+}
+
+// Helper function to scale ingredient quantities
+function scaleIngredient(ingredient: string, scaleFactor: number): string {
+  // Match common quantity patterns
+  const patterns = [
+    // Match fractions like "1/2", "3/4"
+    /(\d+\/\d+)/g,
+    // Match decimal numbers like "1.5", "2.0"
+    /(\d+\.\d+)/g,
+    // Match whole numbers
+    /(\d+)/g
+  ];
+
+  let scaledIngredient = ingredient;
+  
+  // Try each pattern
+  for (const pattern of patterns) {
+    scaledIngredient = scaledIngredient.replace(pattern, (match) => {
+      const num = parseNumber(match);
+      const scaled = num * scaleFactor;
+      
+      // Format the result
+      if (Number.isInteger(scaled)) {
+        return scaled.toString();
+      } else {
+        // Convert to fraction if it's a common fraction
+        const commonFractions: { [key: number]: string } = {
+          0.25: '1/4',
+          0.33: '1/3',
+          0.5: '1/2',
+          0.67: '2/3',
+          0.75: '3/4'
+        };
+        return commonFractions[scaled] || scaled.toFixed(1);
+      }
+    });
+  }
+
+  return scaledIngredient;
+}
+
 export default function RecipeCard({ recipe }: RecipeCardProps) {
+  const [desiredServings, setDesiredServings] = useState<number>(1);
+  const [originalServings, setOriginalServings] = useState<number>(1);
+  
   // If recipe is a string, parse it into sections
   const parsedRecipe = typeof recipe === 'string' 
     ? parseRecipeString(recipe)
     : recipe;
 
+  // Extract original servings from recipe
+  useEffect(() => {
+    if (parsedRecipe.servings) {
+      const match = parsedRecipe.servings.match(/\d+/);
+      if (match) {
+        setOriginalServings(parseInt(match[0]));
+        setDesiredServings(parseInt(match[0])); // Initialize with original servings
+      }
+    }
+  }, [parsedRecipe.servings]);
+
   // Fallback: If ingredients are missing, try to extract from raw string (flexible)
   let ingredients = parsedRecipe.ingredients?.length
     ? parsedRecipe.ingredients.map(sanitizeText)
     : (typeof recipe === 'string' ? extractIngredientsFlexible(recipe) : []);
+
+  // Scale ingredients based on desired servings
+  const scaledIngredients = ingredients.map(ingredient => 
+    scaleIngredient(ingredient, desiredServings / originalServings)
+  );
 
   // Clean and parse nutrition facts for display
   let nutritionFacts: { [key: string]: string } = {};
@@ -91,6 +162,50 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         if (label && rest.length) nutritionFacts[stripMarkdown(label)] = stripMarkdown(rest.join(':'));
       }
     });
+  }
+
+  // Fallback: Estimate calories if missing
+  if (!nutritionFacts['Calories'] && ingredients.length > 0) {
+    // Simple calorie lookup for common ingredients (per unit)
+    const calorieLookup: { [key: string]: number } = {
+      'olive oil': 120, // per tablespoon
+      'onion': 45, // per medium
+      'garlic': 4, // per clove
+      'ginger': 2, // per 1/2 inch
+      'turmeric powder': 8, // per teaspoon
+      'cumin powder': 8, // per teaspoon
+      'coriander powder': 6, // per teaspoon
+      'garam masala': 8, // per teaspoon
+      'red pepper flakes': 6, // per teaspoon
+      'spinach': 7, // per 1 cup raw
+      'vegetable broth': 10, // per 1/4 cup
+      'goat cheese': 75, // per 30g
+      'cilantro': 1, // per tablespoon
+      'brown rice': 110 // per 1/2 cup cooked
+    };
+    let totalCalories = 0;
+    ingredients.forEach(ingredient => {
+      for (const key in calorieLookup) {
+        if (ingredient.toLowerCase().includes(key)) {
+          // Estimate quantity multiplier
+          let multiplier = 1;
+          if (/\d+/.test(ingredient)) {
+            const numMatch = ingredient.match(/\d+(\.\d+)?/);
+            if (numMatch) multiplier = parseFloat(numMatch[0]);
+          }
+          // Special handling for goat cheese (per 30g)
+          if (key === 'goat cheese' && /\d+/.test(ingredient)) {
+            const gMatch = ingredient.match(/(\d+)g/);
+            if (gMatch) multiplier = parseFloat(gMatch[1]) / 30;
+          }
+          totalCalories += calorieLookup[key] * multiplier;
+          break;
+        }
+      }
+    });
+    if (totalCalories > 0) {
+      nutritionFacts['Calories'] = `~${Math.round(totalCalories)} (estimated)`;
+    }
   }
 
   // Parse times from nutrition or totalTime
@@ -191,7 +306,25 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
       {/* Content Section */}
       <div className="p-6 space-y-6">
-        {/* Nutrition & Servings (moved above Ingredients) */}
+        {/* Portion Size Control */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <label htmlFor="servings" className="text-sm font-medium text-gray-700">
+            Adjust servings:
+          </label>
+          <input
+            type="number"
+            id="servings"
+            min="1"
+            value={desiredServings}
+            onChange={(e) => setDesiredServings(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+          />
+          <span className="text-sm text-gray-500">
+            {originalServings > 1 ? `(Original recipe serves ${originalServings})` : ''}
+          </span>
+        </div>
+
+        {/* Nutrition & Servings */}
         {(parsedRecipe.nutrition || displayServingSize || prepTime || cookTime || totalTime) && (
           <div className="mt-0 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-base font-semibold text-gray-900 mb-2">Nutrition & Servings</h3>
@@ -217,12 +350,13 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             )}
           </div>
         )}
+
         {/* Ingredients */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Ingredients</h3>
           <ul className="space-y-2">
-            {ingredients.length > 0 ? (
-              ingredients.map((ingredient, index) => (
+            {scaledIngredients.length > 0 ? (
+              scaledIngredients.map((ingredient, index) => (
                 <li key={index} className="flex items-start">
                   <span className="text-gray-500 mr-2">•</span>
                   <span className="text-gray-700">

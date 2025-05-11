@@ -9,6 +9,7 @@ interface RecipeOptions {
   difficulty: number;
   dishType: string;
   customDishType: string;
+  servings: number;
 }
 
 export async function getRecipeFromGemini(
@@ -84,15 +85,21 @@ export async function getRecipeFromGemini(
 }
 
 function constructPrompt(ingredients: string, options: RecipeOptions): string {
-  let prompt = `You are a helpful home cook. Given these ingredients: ${ingredients}, return a detailed recipe with:
+  let prompt = `You are a helpful home cook. Given these ingredients: ${ingredients}, return a detailed recipe for ${options.servings} ${options.servings === 1 ? 'person' : 'people'} with:
 1. Recipe Title
 2. Ingredients List (format each ingredient as "quantity unit ingredient", e.g. "2 cups rice", "1 medium onion", "3 tablespoons oil")
+   - IMPORTANT: Use only a proportional amount of each ingredient based on the number of people (do NOT use the entire amount of any ingredient unless it matches the portion size for that many people)
+   - Use standard adult portion sizes for each ingredient (e.g., 30-50g cheese per person, 1/2 cup cooked rice per person, etc.)
+   - If a user inputs a large amount (e.g., 200g goat cheese), use only what is appropriate for the number of people and leave the rest unused
+   - Use appropriate units (e.g., use tablespoons instead of cups for small quantities)
+   - Round quantities to reasonable amounts (e.g., 1/4 cup instead of 0.25 cups)
 3. Instructions (step-by-step)
 4. Substitutions
 5. Cooking Tips
 6. Nutritional Information (calories, protein, carbs, fat per serving)
+   - ALWAYS compute and show calories per serving, even if you have to estimate
 7. Total Time Required (prep + cook time in minutes)
-8. Estimate and include a serving size (e.g., "serves 2-3 people", "1 cup per serving", or "makes 4 portions") based on the recipe.
+8. Serving size (e.g., "serves ${options.servings} ${options.servings === 1 ? 'person' : 'people'}")
 
 Only return the recipe.`;
 

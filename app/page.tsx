@@ -28,6 +28,7 @@ export default function Home() {
     difficulty: 1,
     dishType: 'main',
     customDishType: '',
+    servings: 1,
   });
   const [showSubstitutionPrompt, setShowSubstitutionPrompt] = useState(false);
   const [showSubstitutionBox, setShowSubstitutionBox] = useState(false);
@@ -164,8 +165,26 @@ export default function Home() {
             onChange={setIngredients}
           />
 
-          {/* Row 1: Diet, Cuisine, Dish Type */}
+          {/* Row 1: Diet, Cuisine, Dish Type, Number of People */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Number of People Input */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="servings" className="text-sm font-medium text-gray-700">
+                Number of people:
+              </label>
+              <input
+                type="number"
+                id="servings"
+                min="1"
+                value={filters.servings}
+                onChange={(e) => setFilters(prev => ({ 
+                  ...prev, 
+                  servings: Math.max(1, parseInt(e.target.value) || 1)
+                }))}
+                className="w-20 px-3 py-2 rounded-full text-sm font-medium bg-gray-100 text-black hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
             {/* Diet Dropdown */}
             <select
               value={filters.diet}
