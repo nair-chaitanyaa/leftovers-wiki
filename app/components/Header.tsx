@@ -14,7 +14,7 @@ export default function Header() {
         {/* Logo */}
         <div className="flex items-center justify-center sm:absolute sm:left-0 sm:justify-start gap-2 mb-2 sm:mb-0">
           <a href="https://leftovers.wiki" target="_blank" rel="noopener noreferrer" aria-label="Website">
-            <Image src={logoSrc} alt="Logo" width={150} height={150} className="rounded-full w-16 h-16 sm:w-[120px] sm:h-[120px]" />
+            <Image src={logoSrc} alt="Logo" width={200} height={200} className="rounded-full w-16 h-16 sm:w-[120px] sm:h-[120px]" />
           </a>
         </div>
         {/* Title and Subtitle */}
