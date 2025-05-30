@@ -7,7 +7,7 @@ interface InputBoxProps {
 export default function InputBox({ 
   value, 
   onChange, 
-  placeholder = "e.g. 2 cups rice, 1 onion, 1/2 capsicum, 1 tbsp oil" 
+  placeholder = "Enter your leftovers/ingredients here!" 
 }: InputBoxProps) {
   return (
     <div className="w-full">
